@@ -279,9 +279,9 @@ if __name__ == "__main__":
     # Create collector
     collector = WebDevDataCollector(DataConfig.raw_data_dir)
     
-    # Collect data (limited for testing)
-    # Note: For production, increase max_pages or remove the limit
-    # collector.collect_from_mdn(max_pages=50)
+    # Collect data (extensive scrape)
+    print("Starting extensive data collection... This may take several minutes.")
+    collector.collect_from_mdn(max_pages=1000)
     
     # Add synthetic examples for testing
     collector.add_synthetic_examples()
