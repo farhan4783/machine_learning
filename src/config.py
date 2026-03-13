@@ -160,7 +160,7 @@ class SystemConfig:
     
     # Device
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    num_workers = 4  # For data loading
+    num_workers = 0  # For data loading
     
     # Random seed for reproducibility
     seed = 42

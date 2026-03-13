@@ -285,8 +285,8 @@ class Trainer:
             'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler else None,
             'best_val_loss': self.best_val_loss,
             'config': {
-                'model': vars(ModelConfig),
-                'training': vars(TrainingConfig),
+                'model': {k: v for k, v in vars(ModelConfig).items() if not k.startswith('_')},
+                'training': {k: v for k, v in vars(TrainingConfig).items() if not k.startswith('_')},
             }
         }
         
@@ -357,7 +357,7 @@ def main():
         print("Training new tokenizer...")
         # Load training data for tokenizer
         import json
-        with open(DataConfig.processed_data_dir / "train.json", 'r') as f:
+        with open(DataConfig.processed_data_dir / "train.json", 'r', encoding='utf-8') as f:
             train_data = json.load(f)
         
         texts = [item['text'] for item in train_data]

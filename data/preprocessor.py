@@ -221,6 +221,9 @@ class DataPreprocessor:
 
 
 if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent / "src"))
     from config import DataConfig
     
     raw_data_path = DataConfig.raw_data_dir / "raw_data.json"

@@ -274,6 +274,9 @@ app.listen(3000, () => {
 
 
 if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent / "src"))
     from config import DataConfig
     
     # Create collector
@@ -281,7 +284,7 @@ if __name__ == "__main__":
     
     # Collect data (extensive scrape)
     print("Starting extensive data collection... This may take several minutes.")
-    collector.collect_from_mdn(max_pages=1000)
+    collector.collect_from_mdn(max_pages=20)
     
     # Add synthetic examples for testing
     collector.add_synthetic_examples()

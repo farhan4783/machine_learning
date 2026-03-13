@@ -10,6 +10,9 @@ from typing import List, Optional
 from pathlib import Path
 import torch
 
+import sys
+sys.path.append(str(Path(__file__).parent.parent / "src"))
+
 from card_generator import CardGenerator
 from inference import InferenceEngine
 from config import DataConfig, InferenceConfig
