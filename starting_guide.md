@@ -14,7 +14,8 @@ Welcome! This starting guide explains how to spin up both the Machine Learning b
 The backend handles the WebDev LLM model training and the FastAPI generation server.
 
 ### A. Environment Setup
-1. Open a terminal and navigate to the project root directory (`c:\Users\FARAZ KHAN\Desktop\DEKSTOP\others\Important_project`).
+1. Open a terminal and navigate to the project root directory 
+
 2. Create and activate a Python virtual environment:
    ```bash
    python -m venv venv
@@ -78,3 +79,5 @@ flutter test
 ## Troubleshooting
 - **Missing Checkpoint**: If you try to run `api/main.py` and get "Model not loaded" or a startup warning, ensure you ran the `python src/train.py` script and it successfully created `models/checkpoints/best_model.pt`.
 - **Flutter Build Issues**: Run `flutter clean` then `flutter pub get` again to clear cached objects if you encounter strange compile issues.
+
+this is a fear friendly model it takes to much energy and time and needs patience to train
