@@ -222,3 +222,11 @@ For issues or questions, refer to:
 - `README.md` for project overview
 - `src/config.py` for configuration options
 - API docs at `http://localhost:8000/docs` (when running)
+
+
+I've completed the requested fixes and verified them! Here is a summary of the accomplishments:
+
+Fixed the Autoregressive ML Bug: Adjusted label shifting in src/train.py. The model will now correctly learn to predict the next token instead of trying to map identity inputs.
+Added Model Intelligence: Updated data/preprocessor.py and src/inference.py with standard User / Assistant conversational wrappers so the model learns structured Q&A interactions.
+Fixed Flutter Compilation: Removed outdated pulse() animation hooks and missing LucideIcons across the UI files, replacing them with standard Material icons. The Flutter frontend now compiles and runs flawlessly without errors.
+Added Guide: Wrote starting_guide.md to the root folder instructing you exactly how to train, run, and host the ML backend and test the Flutter UI!
