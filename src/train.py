@@ -100,10 +100,14 @@ class Trainer:
                 with torch.cuda.amp.autocast():
                     logits = self.model(input_ids, attention_mask)
                     
+                    # Shift so that tokens < n predict n
+                    shift_logits = logits[..., :-1, :].contiguous()
+                    shift_labels = labels[..., 1:].contiguous()
+                    
                     # Reshape for loss calculation
                     loss = self.criterion(
-                        logits.view(-1, logits.size(-1)),
-                        labels.view(-1)
+                        shift_logits.view(-1, shift_logits.size(-1)),
+                        shift_labels.view(-1)
                     )
                     
                     # Scale loss for gradient accumulation
@@ -113,9 +117,14 @@ class Trainer:
                 self.scaler.scale(loss).backward()
             else:
                 logits = self.model(input_ids, attention_mask)
+                
+                # Shift so that tokens < n predict n
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                
                 loss = self.criterion(
-                    logits.view(-1, logits.size(-1)),
-                    labels.view(-1)
+                    shift_logits.view(-1, shift_logits.size(-1)),
+                    shift_labels.view(-1)
                 )
                 loss = loss / self.config.gradient_accumulation_steps
                 loss.backward()
@@ -180,9 +189,14 @@ class Trainer:
             labels = batch['labels'].to(self.device)
             
             logits = self.model(input_ids, attention_mask)
+            
+            # Shift so that tokens < n predict n
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            
             loss = self.criterion(
-                logits.view(-1, logits.size(-1)),
-                labels.view(-1)
+                shift_logits.view(-1, shift_logits.size(-1)),
+                shift_labels.view(-1)
             )
             
             total_loss += loss.item()

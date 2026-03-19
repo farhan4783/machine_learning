@@ -108,7 +108,7 @@ class DataPreprocessor:
                 
                 # Question format
                 qa_sample = {
-                    'text': f"Question: How do I write {topic} code?\n\nAnswer: {code}",
+                    'text': f"User: How do I write {topic} code?\n\nAssistant: {code}",
                     'topic': topic,
                     'type': 'qa',
                     'source': sample['source']
@@ -117,7 +117,7 @@ class DataPreprocessor:
                 
                 # Explanation format
                 explain_sample = {
-                    'text': f"Let me explain this {topic} code:\n\n{code}\n\nThis code demonstrates key concepts of {topic}.",
+                    'text': f"User: Can you explain this {topic} code?\n\n{code}\n\nAssistant: This code demonstrates key concepts of {topic}.",
                     'topic': topic,
                     'type': 'explanation',
                     'source': sample['source']

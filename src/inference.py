@@ -92,7 +92,7 @@ class InferenceEngine:
     
     def explain_code(self, code: str) -> str:
         """Explain what a code snippet does"""
-        prompt = f"Explain this code:\n\n{code}\n\nExplanation:"
+        prompt = f"User: Can you explain this code?\n\n{code}\n\nAssistant:"
         
         explanations = self.generate(
             prompt,
@@ -104,7 +104,7 @@ class InferenceEngine:
     
     def answer_question(self, question: str) -> str:
         """Answer a web development question"""
-        prompt = f"Question: {question}\n\nAnswer:"
+        prompt = f"User: {question}\n\nAssistant:"
         
         answers = self.generate(
             prompt,
