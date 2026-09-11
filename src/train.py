@@ -52,8 +52,9 @@ class Trainer:
         # Loss function
         self.criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.special_token_ids['pad_token'])
         
-        # Gradient scaler for mixed precision
-        self.scaler = torch.cuda.amp.GradScaler() if config.use_amp else None
+        # Mixed precision training (only valid on CUDA)
+        self.use_amp = config.use_amp and self.device == "cuda"
+        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
         
         # TensorBoard writer
         self.writer = SummaryWriter(log_dir=DataConfig.tensorboard_dir)
@@ -95,8 +96,8 @@ class Trainer:
             attention_mask = batch['attention_mask'].to(self.device)
             labels = batch['labels'].to(self.device)
             
-            # Forward pass with mixed precision
-            if self.config.use_amp:
+            # Forward pass with mixed precision if CUDA
+            if self.use_amp:
                 with torch.cuda.amp.autocast():
                     logits = self.model(input_ids, attention_mask)
                     
@@ -132,7 +133,7 @@ class Trainer:
             # Gradient accumulation
             if (batch_idx + 1) % self.config.gradient_accumulation_steps == 0:
                 # Gradient clipping
-                if self.config.use_amp:
+                if self.use_amp:
                     self.scaler.unscale_(self.optimizer)
                 
                 torch.nn.utils.clip_grad_norm_(
@@ -141,7 +142,7 @@ class Trainer:
                 )
                 
                 # Optimizer step
-                if self.config.use_amp:
+                if self.use_amp:
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
                 else:

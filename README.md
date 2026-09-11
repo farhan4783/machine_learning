@@ -1,111 +1,79 @@
-# Web Development LLM Model
+# Web Development LLM Model & AI Studio
 
-A transformer-based language model trained from scratch on comprehensive web development knowledge. This model generates educational knowledge cards covering all aspects of web development.
+A domain-specialized transformer language model trained from scratch on comprehensive full-stack web development knowledge. The project features an end-to-end Machine Learning pipeline, a high-performance FastAPI backend, and a modern React Web Studio for educational knowledge card synthesis and code assistance.
 
 ## Project Structure
 
 ```
 webdev-llm/
 ├── src/                    # Core ML source code
-│   ├── model.py           # Transformer architecture
-│   ├── tokenizer.py       # Custom tokenizer
-│   ├── dataset.py         # Data loading and preprocessing
-│   ├── train.py           # Training loop
-│   ├── config.py          # Configuration
-│   ├── card_generator.py  # Card generation system
-│   └── inference.py       # Model inference utilities
+│   ├── model.py           # Transformer architecture (RMSNorm, RoPE, SwiGLU, KV Cache)
+│   ├── tokenizer.py       # Custom BPE tokenizer from scratch
+│   ├── dataset.py         # PyTorch Dataset & DataLoader pipelines
+│   ├── train.py           # Training loop with AMP & gradient accumulation
+│   ├── config.py          # Architecture & training hyperparameters
+│   ├── card_generator.py  # Structured knowledge card generator
+│   └── inference.py       # Autoregressive generation & code explanation
 ├── data/
+│   ├── data_collector.py  # Scrapes MDN & builds synthetic webdev corpus
+│   ├── preprocessor.py    # Text cleaning, code normalization & dataset splits
 │   ├── raw/               # Raw collected data
-│   └── processed/         # Preprocessed training data
+│   └── processed/         # train.json, val.json, test.json
 ├── models/
-│   └── checkpoints/       # Model checkpoints
+│   ├── checkpoints/       # Trained model weights (best_model.pt)
+│   └── tokenizer/         # BPE vocabulary & merges
 ├── api/                   # FastAPI backend
-│   ├── main.py
-│   └── routes.py
-├── tests/                 # Unit tests
-├── logs/                  # Training logs
+│   ├── main.py            # REST API & React frontend server
+│   └── routes.py          # API route definitions
+├── frontend/              # Modern React Web Studio
+│   ├── index.html         # HTML5 shell with Google Fonts & Lucide icons
+│   ├── app.jsx            # Interactive React application
+│   ├── style.css          # Glassmorphism dark mode design system
+│   └── package.json       # React frontend metadata
+├── tests/                 # Pytest test suite
 └── requirements.txt
 ```
 
 ## Features
 
-- **Custom Transformer Model**: Built from scratch with multi-head attention
-- **Web Dev Specialized**: Trained on HTML, CSS, JavaScript, frameworks, databases, DevOps
-- **Knowledge Card Generation**: Generates structured educational cards on any web dev topic
-- **Topic Categories**: Frontend, Backend, Database, DevOps, Tools
-- **FastAPI Backend**: RESTful API for model inference
+- **Custom Transformer Architecture**: RoPE (Rotary Position Embeddings), RMSNorm, SwiGLU activation, and Key-Value (KV) cache for $O(1)$ recurrent step latency.
+- **BPE Tokenizer**: Built from scratch with web dev specific tokens (`<CODE>`, `<HTML>`, `<CSS>`, `<JS>`).
+- **Educational Knowledge Card Generator**: Produces structured cards covering concepts, code snippets, best practices, and use cases.
+- **Interactive React Web Studio**: Beautiful dark-mode UI with live card generation, categorized topic directory, code playground, and system diagnostics.
+- **Unified FastAPI Backend**: High-throughput REST API serving both ML endpoints and the React single-page application.
 
-## Hardware Requirements
-
-- **GPU**: NVIDIA GPU with 16GB+ VRAM recommended (RTX 3080/4080 or better)
-- **RAM**: 32GB+ recommended
-- **Storage**: 50GB+ for data and model checkpoints
-- **CPU Training**: Possible but significantly slower
-
-## Installation
+## Quickstart
 
 ```bash
-# Create virtual environment
+# 1. Activate virtual environment and install dependencies
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-## Usage
-
-### 1. Data Collection
-```bash
+# 2. Collect and preprocess training data
 python data/data_collector.py
-```
-
-### 2. Data Preprocessing
-```bash
 python data/preprocessor.py
+
+# 3. Train the model & tokenizer
+python test_train.py
+
+# 4. Start the Web Studio & API Server
+python -m uvicorn main:app --app-dir api --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 3. Train Model
-```bash
-python src/train.py --epochs 10 --batch-size 32
-```
-
-### 4. Generate Cards
-```bash
-python src/card_generator.py --topic "React Hooks"
-```
-
-### 5. Run API Server
-```bash
-cd api
-uvicorn main:app --reload
-```
-
-## Model Architecture
-
-- **Type**: Transformer (GPT-style)
-- **Parameters**: ~124M (configurable)
-- **Layers**: 12
-- **Attention Heads**: 12
-- **Embedding Dimension**: 768
-- **Context Length**: 1024 tokens
-
-## Training Data Sources
-
-- MDN Web Docs
-- W3C Specifications
-- Framework Documentation (React, Vue, Angular, Next.js)
-- Backend Frameworks (Express, Django, Flask, FastAPI)
-- Database Documentation (PostgreSQL, MongoDB, MySQL)
-- DevOps Guides (Docker, Kubernetes, CI/CD)
+Navigate to **`http://localhost:8000`** to access the React Web Studio!
 
 ## API Endpoints
 
-- `POST /generate-card` - Generate a knowledge card
-- `POST /generate-batch` - Generate multiple cards
-- `GET /topics` - List available topics
-- `GET /model-info` - Model metadata
+- `GET /` - React Web Studio GUI
+- `POST /generate-card` - Generate a structured knowledge card
+- `POST /generate-batch` - Generate multiple cards in batch
+- `POST /generate-text` - Free-form prompt completion and Q&A
+- `GET /topics` - Categorized web development topic catalog
+- `GET /model-info` - Active model parameters and architecture metadata
+- `GET /health` - Backend and compute device health check
 
 ## License
 
 MIT
+

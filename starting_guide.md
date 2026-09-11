@@ -1,83 +1,84 @@
 # WebDev LLM Project - Starting Guide
 
-Welcome! This starting guide explains how to spin up both the Machine Learning backend (WebDev LLM) and the Flutter frontend app.
+Welcome! This starting guide explains how to spin up both the Machine Learning backend (WebDev LLM Transformer) and the modern React Web Frontend.
 
 ## 1. Prerequisites
-- **Python**: 3.8 or newer.
-- **Flutter**: Ensure the Flutter SDK is installed and added to your PATH.
-- **Compiler/CUDA**: If you want to use GPU, ensure CUDA is available. For CPU, no extra steps are required.
+- **Python**: 3.8 to 3.14.
+- **Web Browser**: Chrome, Edge, Firefox, or Safari (no Node.js installation required to run the Web Studio).
+- **Compute Device**: Automatically supports both CPU and NVIDIA CUDA GPUs.
 
 ---
 
 ## 2. Server/Backend Setup (Python)
 
-The backend handles the WebDev LLM model training and the FastAPI generation server.
+The backend powers the WebDev LLM model training, inference, and the unified FastAPI application that serves both the REST API and the React Web Studio.
 
 ### A. Environment Setup
-1. Open a terminal and navigate to the project root directory 
-
-2. Create and activate a Python virtual environment:
+1. Open a terminal in the project root directory:
    ```bash
    python -m venv venv
    # On Windows:
    venv\Scripts\activate
    ```
-3. Install the dependencies:
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-### B. Preprocessing Data
-Before training the model, you need to preprocess and format the dataset:
-```bash
-python data/preprocessor.py
-```
-This script reads raw data (e.g., from `data/raw/raw_data.json`), augments it into conversational Question/Answer formats, and splits it into `train`, `val`, and `test` data under `data/processed/`.
+### B. Collecting & Preprocessing Data
+1. Collect synthetic and web development documentation:
+   ```bash
+   python data/data_collector.py
+   ```
+2. Run data cleaning, normalization, Q&A augmentation, and split generation:
+   ```bash
+   python data/preprocessor.py
+   ```
+   This creates `train.json`, `val.json`, and `test.json` under `data/processed/`.
 
 ### C. Training the Model
-Next, train the model. Note that the original training script had an autoregressive bug that has now been **fixed**.
-```bash
-python src/train.py
-```
-This produces the trained checkpoint `models/checkpoints/best_model.pt` which is required for the API server.
+To train the model:
+- **Fast Local / Dev Training**:
+  ```bash
+  python test_train.py
+  ```
+- **Full Production Training (124M Parameters)**:
+  ```bash
+  python src/train.py
+  ```
+This produces the trained checkpoint `models/checkpoints/best_model.pt` and custom BPE tokenizer `models/tokenizer/`.
 
-### D. Running the API Server
-Once the model is trained, start the FastAPI application:
+### D. Running the React Web Studio & API Server
+Start the unified FastAPI server:
+```bash
+python -m uvicorn main:app --app-dir api --host 127.0.0.1 --port 8000 --reload
+```
+or
 ```bash
 cd api
 python main.py
 ```
-The API server will run on `http://localhost:8000`. It provides endpoints like `/generate-card` and `/generate-text`.
+
+Open your browser and navigate to:
+👉 **`http://localhost:8000`**
 
 ---
 
-## 3. Frontend Setup (Flutter)
+## 3. React Web Frontend Features
 
-The frontend project provides the interactive user interface.
+The React Web Frontend (`frontend/`) is served directly by the backend at `http://localhost:8000` and can also be opened standalone in `frontend/index.html`:
 
-### A. Launching the App
-1. Open a new terminal and navigate to the flutter app folder:
-   ```bash
-   cd webdev_app
-   ```
-2. Fetch the required dart packages:
-   ```bash
-   flutter pub get
-   ```
-3. Run the application:
-   ```bash
-   # Run on the web or an emulator (depending on your setup)
-   flutter run -d chrome
-   ```
+- **🎴 Knowledge Card Generator**: Synthesize educational cards on any web dev subject (React, CSS Flexbox, Node.js, SQL, Docker, TypeScript) with customizable card types (Concept, Code Example, Tutorial, Best Practices, Tradeoffs).
+- **📚 Interactive Topic Explorer**: Browse categorized full-stack topics with 1-click card generation.
+- **💻 AI Playground**: Test raw code completion, code explanation, and conversational Q&A.
+- **⚙️ Model Diagnostics**: Inspect active device (CPU/CUDA), parameter counts, vocabulary dimensions, and neural architecture (RoPE, RMSNorm, SwiGLU, KV Cache).
+- **📥 Export Options**: Copy to clipboard, download as Markdown (`.md`), or download as JSON.
 
-### B. Testing
-A critical test issue where `widget_test.dart` referenced the wrong app root class has been **fixed**. You can verify that all tests pass by running:
+---
+
+## 4. Running Unit Tests
+Verify model architecture and tokenizer correctness:
 ```bash
-flutter test
+pytest tests/
 ```
 
-## Troubleshooting
-- **Missing Checkpoint**: If you try to run `api/main.py` and get "Model not loaded" or a startup warning, ensure you ran the `python src/train.py` script and it successfully created `models/checkpoints/best_model.pt`.
-- **Flutter Build Issues**: Run `flutter clean` then `flutter pub get` again to clear cached objects if you encounter strange compile issues.
-
-this is a fear friendly model it takes to much energy and time and needs patience to train

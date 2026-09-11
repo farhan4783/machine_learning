@@ -105,9 +105,21 @@ async def startup_event():
     print(f"Models loaded successfully on {device}")
 
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Static Frontend mounting
+frontend_dir = Path(__file__).parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/frontend", StaticFiles(directory=str(frontend_dir)), name="frontend")
+
+
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Serve the React Web frontend or API overview"""
+    frontend_index = frontend_dir / "index.html"
+    if frontend_index.exists():
+        return FileResponse(frontend_index)
     return {
         "message": "Web Development LLM API",
         "version": "1.0.0",
@@ -117,6 +129,40 @@ async def root():
             "generate_text": "/generate-text",
             "topics": "/topics",
             "model_info": "/model-info"
+        }
+    }
+
+
+@app.get("/style.css")
+async def get_style():
+    style_file = frontend_dir / "style.css"
+    if style_file.exists():
+        return FileResponse(style_file, media_type="text/css")
+    raise HTTPException(status_code=404, detail="Style file not found")
+
+
+@app.get("/app.jsx")
+async def get_app_jsx():
+    jsx_file = frontend_dir / "app.jsx"
+    if jsx_file.exists():
+        return FileResponse(jsx_file, media_type="text/javascript")
+    raise HTTPException(status_code=404, detail="App JSX file not found")
+
+
+@app.get("/api")
+async def api_info():
+    """API Directory endpoint"""
+    return {
+        "message": "Web Development LLM API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "endpoints": {
+            "generate_card": "/generate-card",
+            "generate_batch": "/generate-batch",
+            "generate_text": "/generate-text",
+            "topics": "/topics",
+            "model_info": "/model-info",
+            "health": "/health"
         }
     }
 

@@ -20,12 +20,12 @@ class CardGenerator:
         self,
         model: WebDevLLM,
         tokenizer: WebDevTokenizer,
-        device: str = "cuda"
+        device: Optional[str] = None
     ):
-        self.model = model.to(device)
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = model.to(self.device)
         self.model.eval()
         self.tokenizer = tokenizer
-        self.device = device
         
         # Card templates
         self.templates = {
@@ -168,27 +168,29 @@ class CardGenerator:
         print(f"Saved card to {output_path}")
     
     @classmethod
-    def load_model(cls, checkpoint_path: Path, device: str = "cuda") -> 'CardGenerator':
+    def load_model(cls, checkpoint_path: Path, device: Optional[str] = None) -> 'CardGenerator':
         """Load model from checkpoint"""
+        device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         # Load checkpoint
         checkpoint = torch.load(checkpoint_path, map_location=device)
+        model_cfg = checkpoint.get('config', {}).get('model', {})
         
         # Load tokenizer
         tokenizer = WebDevTokenizer.load(DataConfig.tokenizer_dir)
         
         # Create model
         model = WebDevLLM(
-            vocab_size=len(tokenizer),
-            d_model=ModelConfig.d_model,
-            n_layers=ModelConfig.n_layers,
-            n_heads=ModelConfig.n_heads,
-            d_ff=ModelConfig.d_ff,
-            max_seq_length=ModelConfig.max_seq_length,
-            dropout=ModelConfig.dropout,
+            vocab_size=model_cfg.get('vocab_size', len(tokenizer)),
+            d_model=model_cfg.get('d_model', ModelConfig.d_model),
+            n_layers=model_cfg.get('n_layers', ModelConfig.n_layers),
+            n_heads=model_cfg.get('n_heads', ModelConfig.n_heads),
+            d_ff=model_cfg.get('d_ff', ModelConfig.d_ff),
+            max_seq_length=model_cfg.get('max_seq_length', ModelConfig.max_seq_length),
+            dropout=model_cfg.get('dropout', ModelConfig.dropout),
         )
         
         # Load weights
-        model.load_state_dict(checkpoint['model_state_dict'])
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
         
         return cls(model, tokenizer, device)
 

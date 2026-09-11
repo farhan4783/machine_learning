@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import List, Dict
 import re
-from sklearn.model_selection import train_test_split
+import random
 from tqdm import tqdm
 
 
@@ -136,20 +136,18 @@ class DataPreprocessor:
         """Split data into train/val/test sets"""
         assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6
         
-        # First split: train and temp (val + test)
-        train_data, temp_data = train_test_split(
-            samples,
-            test_size=(1 - train_ratio),
-            random_state=42
-        )
+        # Deterministic shuffle
+        shuffled = samples.copy()
+        rng = random.Random(42)
+        rng.shuffle(shuffled)
         
-        # Second split: val and test
-        val_size = val_ratio / (val_ratio + test_ratio)
-        val_data, test_data = train_test_split(
-            temp_data,
-            test_size=(1 - val_size),
-            random_state=42
-        )
+        total = len(shuffled)
+        train_end = int(total * train_ratio)
+        val_end = int(total * (train_ratio + val_ratio))
+        
+        train_data = shuffled[:train_end]
+        val_data = shuffled[train_end:val_end]
+        test_data = shuffled[val_end:]
         
         return train_data, val_data, test_data
     

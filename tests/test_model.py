@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from model import WebDevLLM, MultiHeadAttention, TransformerBlock
+from model import WebDevLLM, MultiHeadAttention, TransformerBlock, precompute_freqs_cis
 from config import ModelConfig
 
 
@@ -70,26 +70,33 @@ def test_generation():
 
 def test_attention_mechanism():
     """Test multi-head attention"""
-    attention = MultiHeadAttention(d_model=256, n_heads=4)
+    d_model = 256
+    n_heads = 4
+    attention = MultiHeadAttention(d_model=d_model, n_heads=n_heads)
     
     batch_size = 2
     seq_len = 32
-    x = torch.randn(batch_size, seq_len, 256)
+    x = torch.randn(batch_size, seq_len, d_model)
+    freqs_cis = precompute_freqs_cis(dim=d_model // n_heads, end=seq_len)
     
-    output = attention(x)
+    output, new_kv = attention(x, freqs_cis)
     
     assert output.shape == x.shape
+    assert new_kv[0].shape[1] == seq_len
 
 
 def test_transformer_block():
     """Test transformer block"""
-    block = TransformerBlock(d_model=256, n_heads=4, d_ff=1024)
+    d_model = 256
+    n_heads = 4
+    block = TransformerBlock(d_model=d_model, n_heads=n_heads, d_ff=1024)
     
     batch_size = 2
     seq_len = 32
-    x = torch.randn(batch_size, seq_len, 256)
+    x = torch.randn(batch_size, seq_len, d_model)
+    freqs_cis = precompute_freqs_cis(dim=d_model // n_heads, end=seq_len)
     
-    output = block(x)
+    output, new_kv = block(x, freqs_cis)
     
     assert output.shape == x.shape
 

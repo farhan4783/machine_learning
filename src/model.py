@@ -165,12 +165,14 @@ class WebDevLLM(nn.Module):
         self.d_model = d_model
         self.max_seq_length = max_seq_length
         self.vocab_size = vocab_size
+        self.n_heads = n_heads
+        self.head_dim = d_model // n_heads
         
         self.token_embedding = nn.Embedding(vocab_size, d_model)
         
-        # Precompute RoPE frequencies for up to 2x max length
-        # Using register_buffer makes it part of state dict and properly device-managed
-        self.register_buffer("freqs_cis_real", torch.view_as_real(precompute_freqs_cis(d_model // n_heads, max_seq_length * 2)))
+        # Precompute RoPE frequencies for up to 4096 or 4x max length
+        # Non-persistent buffer so state_dict loads cleanly across varying context sizes
+        self.register_buffer("freqs_cis_real", torch.view_as_real(precompute_freqs_cis(self.head_dim, max(4096, max_seq_length * 4))), persistent=False)
         
         self.transformer_blocks = nn.ModuleList([
             TransformerBlock(d_model, n_heads, d_ff, dropout)
@@ -213,9 +215,13 @@ class WebDevLLM(nn.Module):
         x = self.token_embedding(input_ids) * math.sqrt(self.d_model)
         x = self.dropout(x)
         
-        # Convert real buffer back to complex
-        freqs_cis = torch.view_as_complex(self.freqs_cis_real)
-        freqs_cis = freqs_cis[start_pos : start_pos + seq_len]
+        # Convert real buffer back to complex or compute dynamically if exceeded
+        if start_pos + seq_len > self.freqs_cis_real.shape[0]:
+            needed_len = start_pos + seq_len + 512
+            freqs_cis = precompute_freqs_cis(self.head_dim, needed_len).to(device)
+            freqs_cis = freqs_cis[start_pos : start_pos + seq_len]
+        else:
+            freqs_cis = torch.view_as_complex(self.freqs_cis_real)[start_pos : start_pos + seq_len].to(device)
         
         past_len = 0 if kv_caches is None else kv_caches[0][0].shape[1]
         
