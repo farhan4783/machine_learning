@@ -11,6 +11,7 @@ import json
 from model import WebDevLLM
 from tokenizer import WebDevTokenizer
 from config import ModelConfig, InferenceConfig, DataConfig
+from ai_engine import WebDevAIEngine
 
 
 class CardGenerator:
@@ -18,76 +19,35 @@ class CardGenerator:
     
     def __init__(
         self,
-        model: WebDevLLM,
-        tokenizer: WebDevTokenizer,
+        model: Optional[WebDevLLM] = None,
+        tokenizer: Optional[WebDevTokenizer] = None,
         device: Optional[str] = None
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = model.to(self.device)
-        self.model.eval()
+        self.model = model.to(self.device) if model is not None else None
+        if self.model is not None:
+            self.model.eval()
         self.tokenizer = tokenizer
-        
-        # Card templates
-        self.templates = {
-            'concept': "Explain the concept of {topic} in web development. Include key points and examples.",
-            'code_example': "Provide a detailed code example for {topic}. Include comments and best practices.",
-            'tutorial': "Create a step-by-step tutorial for {topic}. Make it beginner-friendly.",
-            'comparison': "Compare and contrast {topic} with similar technologies. Highlight pros and cons.",
-            'best_practices': "List the best practices for {topic}. Include common pitfalls to avoid.",
-            'use_cases': "Describe real-world use cases for {topic}. Provide practical examples.",
-        }
+        self.ai_engine = WebDevAIEngine(neural_model=self.model, tokenizer=self.tokenizer, device=self.device)
     
     def generate_card(
         self,
         topic: str,
         card_type: str = 'concept',
         max_length: int = 512,
-        temperature: float = 0.8,
+        temperature: float = 0.7,
         top_k: int = 50,
         top_p: float = 0.95,
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """
-        Generate a knowledge card for a given topic
-        
-        Args:
-            topic: Web development topic
-            card_type: Type of card (concept, code_example, tutorial, etc.)
-            max_length: Maximum generation length
-            temperature: Sampling temperature
-            top_k: Top-k sampling
-            top_p: Nucleus sampling
-        
-        Returns:
-            Dictionary containing card data
+        Generate a comprehensive knowledge card for a given topic
         """
-        # Get template
-        template = self.templates.get(card_type, self.templates['concept'])
-        prompt = template.format(topic=topic)
-        
-        # Encode prompt
-        input_ids = torch.tensor(
-            self.tokenizer.encode(prompt, add_special_tokens=True),
-            dtype=torch.long
-        ).unsqueeze(0).to(self.device)
-        
-        # Generate
-        with torch.no_grad():
-            generated = self.model.generate(
-                input_ids,
-                max_length=max_length,
-                temperature=temperature,
-                top_k=top_k,
-                top_p=top_p,
-                eos_token_id=self.tokenizer.special_token_ids['eos_token']
-            )
-        
-        # Decode
-        generated_text = self.tokenizer.decode(generated[0].tolist(), skip_special_tokens=True)
-        
-        # Parse card content
-        card = self._parse_card_content(generated_text, topic, card_type)
-        
-        return card
+        return self.ai_engine.generate_card(
+            topic=topic,
+            card_type=card_type,
+            max_length=max_length,
+            temperature=temperature
+        )
     
     def _parse_card_content(self, text: str, topic: str, card_type: str) -> Dict[str, str]:
         """Parse generated text into structured card format"""

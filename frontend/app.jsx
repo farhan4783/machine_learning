@@ -1,10 +1,48 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef, useMemo } = React;
 
 // API Base URL - Uses current window origin if served by FastAPI or defaults to http://localhost:8000
 const API_BASE = window.location.origin.includes(':8000') || window.location.origin.includes(':3000') || window.location.origin.includes(':5173')
   ? (window.location.port === '8000' ? '' : 'http://localhost:8000')
   : 'http://localhost:8000';
 
+// ==========================================
+// Reusable Markdown & Syntax Highlighting Component
+// ==========================================
+function MarkdownRenderer({ content }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.hljs && containerRef.current) {
+      containerRef.current.querySelectorAll('pre code').forEach((block) => {
+        window.hljs.highlightElement(block);
+      });
+    }
+  }, [content]);
+
+  const rawHtml = useMemo(() => {
+    if (!content) return '';
+    if (window.marked) {
+      try {
+        return window.marked.parse(content);
+      } catch (e) {
+        console.error("Markdown parse error:", e);
+      }
+    }
+    return content.replace(/\n/g, '<br/>');
+  }, [content]);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="markdown-body-custom"
+      dangerouslySetInnerHTML={{ __html: rawHtml }}
+    />
+  );
+}
+
+// ==========================================
+// Root Application
+// ==========================================
 function App() {
   const [activeTab, setActiveTab] = useState('generator');
   const [backendStatus, setBackendStatus] = useState({ online: false, device: 'unknown', modelLoaded: false });
@@ -37,7 +75,7 @@ function App() {
 
   useEffect(() => {
     checkHealth();
-    const interval = setInterval(checkHealth, 5000);
+    const interval = setInterval(checkHealth, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -121,8 +159,8 @@ function App() {
 function CardGeneratorView({ initialTopic, isOnline }) {
   const [topic, setTopic] = useState(initialTopic || 'React Hooks');
   const [cardType, setCardType] = useState('concept');
-  const [temperature, setTemperature] = useState(0.8);
-  const [maxLength, setMaxLength] = useState(256);
+  const [temperature, setTemperature] = useState(0.7);
+  const [maxLength, setMaxLength] = useState(384);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedCard, setGeneratedCard] = useState(null);
@@ -204,7 +242,7 @@ function CardGeneratorView({ initialTopic, isOnline }) {
       <div className="hero">
         <h1 className="hero-title">Synthesize Web Dev Knowledge Cards</h1>
         <p className="hero-subtitle">
-          Generate structured, educational cards powered by a custom Transformer LLM trained from scratch on modern web development.
+          Generate structured, educational cards powered by a custom Transformer LLM specialized in modern full-stack web development.
         </p>
       </div>
 
@@ -248,20 +286,19 @@ function CardGeneratorView({ initialTopic, isOnline }) {
                 <option value="code_example">Detailed Code Implementation</option>
                 <option value="tutorial">Step-by-Step Guide</option>
                 <option value="best_practices">Best Practices & Pitfalls</option>
-                <option value="comparison">Tech Comparison & Tradeoffs</option>
                 <option value="use_cases">Real-World Use Cases</option>
               </select>
             </div>
 
             <div className="form-group">
               <div className="slider-group">
-                <label className="form-label" style={{margin:0}}>Creativity (Temperature)</label>
+                <label className="form-label" style={{margin:0}}>Sampling Temperature</label>
                 <span>{temperature}</span>
               </div>
               <input 
                 type="range" 
                 min="0.1" 
-                max="1.5" 
+                max="1.0" 
                 step="0.05"
                 value={temperature}
                 onChange={(e) => setTemperature(e.target.value)}
@@ -336,7 +373,7 @@ function CardGeneratorView({ initialTopic, isOnline }) {
               <strong>Error:</strong> {error}
               {!isOnline && (
                 <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                  Make sure the FastAPI server is running with <code>uvicorn api.main:app --reload</code> or <code>python api/main.py</code>.
+                  Make sure the FastAPI server is running with <code>uvicorn api.main:app --reload</code>.
                 </div>
               )}
             </div>
@@ -349,7 +386,7 @@ function CardGeneratorView({ initialTopic, isOnline }) {
                 Synthesizing {topic} Card...
               </div>
               <p style={{ maxWidth: '400px', fontSize: '0.9rem' }}>
-                Autoregressively generating tokens with multi-head attention and RoPE embeddings.
+                Extracting domain concepts, synthesizing production-ready code examples and best practices.
               </p>
             </div>
           ) : generatedCard ? (
@@ -358,7 +395,7 @@ function CardGeneratorView({ initialTopic, isOnline }) {
                 <div>
                   <h2 className="card-title-lg">{generatedCard.title}</h2>
                   <div className="card-meta">
-                    <span className="card-badge">{generatedCard.type.replace('_', ' ')}</span>
+                    <span className="card-badge">{generatedCard.type ? generatedCard.type.replace('_', ' ') : 'Concept'}</span>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       Topic: <strong>{generatedCard.topic}</strong>
                     </span>
@@ -375,29 +412,8 @@ function CardGeneratorView({ initialTopic, isOnline }) {
               </div>
 
               <div className="card-body-content">
-                {generatedCard.content}
+                <MarkdownRenderer content={generatedCard.content} />
               </div>
-
-              {generatedCard.code_examples && generatedCard.code_examples.length > 0 && (
-                <div style={{ marginTop: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#818cf8' }}>Code Examples</h3>
-                  {generatedCard.code_examples.map((code, idx) => (
-                    <div className="code-block" key={idx}>
-                      <div className="code-header">
-                        <span>Code Snippet #{idx + 1}</span>
-                        <button 
-                          className="btn-secondary" 
-                          style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                          onClick={() => copyToClipboard(code)}
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <pre className="code-content">{code}</pre>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ) : (
             <div className="empty-state">
@@ -542,8 +558,8 @@ function TopicExplorerView({ onSelectTopic }) {
 // ==========================================
 function PlaygroundView({ isOnline }) {
   const [prompt, setPrompt] = useState('Explain the difference between synchronous and asynchronous code in JavaScript:');
-  const [maxLength, setMaxLength] = useState(256);
-  const [temperature, setTemperature] = useState(0.8);
+  const [maxLength, setMaxLength] = useState(384);
+  const [temperature, setTemperature] = useState(0.7);
   const [loading, setLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const [error, setError] = useState(null);
@@ -592,7 +608,7 @@ function PlaygroundView({ isOnline }) {
       <div className="hero">
         <h1 className="hero-title">AI WebDev Playground & Assistant</h1>
         <p className="hero-subtitle">
-          Test raw prompt completions, code explanations, and conversational Q&A directly with the transformer model.
+          Test raw prompt completions, code explanations, and conversational Q&A directly with the specialized WebDev AI engine.
         </p>
       </div>
 
@@ -635,7 +651,7 @@ function PlaygroundView({ isOnline }) {
             <input 
               type="range" 
               min="0.1" 
-              max="1.5" 
+              max="1.0" 
               step="0.05"
               value={temperature}
               onChange={(e) => setTemperature(e.target.value)}
@@ -681,12 +697,12 @@ function PlaygroundView({ isOnline }) {
           {loading ? (
             <div className="empty-state">
               <div className="spinner" style={{ width: '40px', height: '40px' }}></div>
-              <div>Computing next-token probabilities...</div>
+              <div>Computing next-token probabilities & synthesizing...</div>
             </div>
           ) : generatedText ? (
             <div className="code-block" style={{ margin: 0, minHeight: '300px' }}>
               <div className="code-header">
-                <span>Model Completion</span>
+                <span>Model Output</span>
                 <button 
                   className="btn-secondary" 
                   style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
@@ -698,7 +714,9 @@ function PlaygroundView({ isOnline }) {
                   Copy Text
                 </button>
               </div>
-              <pre className="code-content" style={{ whiteSpace: 'pre-wrap' }}>{generatedText}</pre>
+              <div style={{ padding: '1.25rem' }}>
+                <MarkdownRenderer content={generatedText} />
+              </div>
             </div>
           ) : (
             <div className="empty-state">
@@ -736,7 +754,7 @@ function DiagnosticsView({ backendStatus, modelInfo }) {
         <div className="diag-card">
           <div className="diag-label">Trainable Parameters</div>
           <div className="diag-value">
-            {modelInfo ? `${(modelInfo.parameters / 1000000).toFixed(2)}M` : '5.7M'}
+            {modelInfo ? `${(modelInfo.parameters / 1000000).toFixed(2)}M` : '5.72M'}
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Configurable scaling</p>
         </div>

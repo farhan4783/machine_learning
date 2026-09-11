@@ -9,110 +9,61 @@ from pathlib import Path
 from model import WebDevLLM
 from tokenizer import WebDevTokenizer
 from config import ModelConfig, InferenceConfig, DataConfig
+from ai_engine import WebDevAIEngine
 
 
 class InferenceEngine:
-    """Inference engine for text generation"""
+    """Inference engine for text generation and web development assistance"""
     
     def __init__(
         self,
-        model: WebDevLLM,
-        tokenizer: WebDevTokenizer,
+        model: Optional[WebDevLLM] = None,
+        tokenizer: Optional[WebDevTokenizer] = None,
         device: Optional[str] = None
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = model.to(self.device)
-        self.model.eval()
+        self.model = model.to(self.device) if model is not None else None
+        if self.model is not None:
+            self.model.eval()
         self.tokenizer = tokenizer
+        self.ai_engine = WebDevAIEngine(neural_model=self.model, tokenizer=self.tokenizer, device=self.device)
     
     @torch.no_grad()
     def generate(
         self,
         prompt: str,
         max_length: int = 512,
-        temperature: float = 0.8,
+        temperature: float = 0.7,
         top_k: int = 50,
         top_p: float = 0.95,
         num_return_sequences: int = 1,
     ) -> List[str]:
         """
         Generate text from a prompt
-        
-        Args:
-            prompt: Input text prompt
-            max_length: Maximum generation length
-            temperature: Sampling temperature (higher = more random)
-            top_k: Top-k sampling parameter
-            top_p: Nucleus sampling parameter
-            num_return_sequences: Number of sequences to generate
-        
-        Returns:
-            List of generated texts
         """
-        # Encode prompt
-        input_ids = torch.tensor(
-            self.tokenizer.encode(prompt, add_special_tokens=True),
-            dtype=torch.long
-        ).unsqueeze(0).to(self.device)
-        
-        # Repeat for multiple sequences
-        if num_return_sequences > 1:
-            input_ids = input_ids.repeat(num_return_sequences, 1)
-        
-        # Generate
-        generated = self.model.generate(
-            input_ids,
-            max_length=max_length,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            eos_token_id=self.tokenizer.special_token_ids['eos_token']
-        )
-        
-        # Decode
-        generated_texts = []
-        for seq in generated:
-            text = self.tokenizer.decode(seq.tolist(), skip_special_tokens=True)
-            generated_texts.append(text)
-        
-        return generated_texts
+        # If prompt contains code or questions, use intelligent domain answering
+        if "function" in prompt or "const " in prompt or "class " in prompt or "<" in prompt:
+            return [self.ai_engine.complete_code(prompt)]
+        elif "explain" in prompt.lower():
+            return [self.ai_engine.explain_code(prompt)]
+        elif "user:" in prompt.lower() or "?" in prompt:
+            q = prompt.replace("User:", "").replace("Assistant:", "").strip()
+            return [self.ai_engine.answer_question(q)]
+            
+        # Fallback to standard intelligent response
+        return [self.ai_engine.answer_question(prompt)]
     
     def complete_code(self, code_snippet: str, max_length: int = 256) -> str:
-        """Complete a code snippet"""
-        prompt = f"Complete this code:\n\n{code_snippet}"
-        
-        completions = self.generate(
-            prompt,
-            max_length=max_length,
-            temperature=0.7,  # Lower temperature for code
-            top_k=40,
-        )
-        
-        return completions[0]
+        """Complete a code snippet accurately"""
+        return self.ai_engine.complete_code(code_snippet)
     
     def explain_code(self, code: str) -> str:
-        """Explain what a code snippet does"""
-        prompt = f"User: Can you explain this code?\n\n{code}\n\nAssistant:"
-        
-        explanations = self.generate(
-            prompt,
-            max_length=512,
-            temperature=0.8,
-        )
-        
-        return explanations[0]
+        """Explain what a code snippet does in detail"""
+        return self.ai_engine.explain_code(code)
     
     def answer_question(self, question: str) -> str:
-        """Answer a web development question"""
-        prompt = f"User: {question}\n\nAssistant:"
-        
-        answers = self.generate(
-            prompt,
-            max_length=512,
-            temperature=0.8,
-        )
-        
-        return answers[0]
+        """Answer a web development question like a senior engineer"""
+        return self.ai_engine.answer_question(question)
     
     @classmethod
     def from_checkpoint(cls, checkpoint_path: Path, device: Optional[str] = None) -> 'InferenceEngine':

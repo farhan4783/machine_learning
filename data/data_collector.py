@@ -144,8 +144,38 @@ class WebDevDataCollector:
                                     print(f"Collected {len(collected_urls)} pages...")
     
     def add_synthetic_examples(self):
-        """Add synthetic web development examples"""
-        print("\nAdding synthetic examples...")
+        """Add synthetic web development examples from knowledge base"""
+        print("\nAdding comprehensive web development knowledge samples...")
+        
+        try:
+            import sys
+            from pathlib import Path
+            sys.path.append(str(Path(__file__).parent.parent / "src"))
+            from knowledge_base import WEBDEV_KNOWLEDGE
+            
+            for key, data in WEBDEV_KNOWLEDGE.items():
+                # 1. Core concept documentation
+                self.collected_data.append({
+                    'source': 'WebDevKnowledgeBase',
+                    'topic': data.get('category', 'Web Development'),
+                    'title': data['title'],
+                    'text': f"{data['title']}\n\n{data['concept']}\n\nBest Practices:\n" + "\n".join([f"- {bp}" for bp in data.get('best_practices', [])]),
+                    'code_examples': [data['code_example']] if 'code_example' in data else [],
+                    'type': 'documentation'
+                })
+                
+                # 2. Code Example training sample
+                if 'code_example' in data:
+                    self.collected_data.append({
+                        'source': 'WebDevCodeBase',
+                        'topic': data.get('category', 'Web Development'),
+                        'title': f"Code Example for {data['title']}",
+                        'text': f"Here is production code for {data['title']}:\n\n{data['code_example']}",
+                        'code_examples': [data['code_example']],
+                        'type': 'code'
+                    })
+        except Exception as e:
+            print(f"Could not load knowledge base: {e}")
         
         synthetic_examples = [
             # HTML
